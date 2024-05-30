@@ -6,6 +6,7 @@
 
 #include "point.h"
 #include "fields.h"
+#include <stdio.h>
 
 /*
  * Line evaluations from  https://eprint.iacr.org/2010/354.pdf
@@ -409,6 +410,55 @@ void blst_miller_loop(vec384fp12 ret, const POINTonE2_affine *Q,
                        P ? P : (const POINTonE1_affine *)&BLS12_381_G1, 1);
 }
 
+#ifndef MILLER_LOOP_N_MAX
+# define MILLER_LOOP_N_MAX 16
+#endif
+
+void blst_miller_loop_n(vec384fp12 out, const POINTonE2_affine *const Qs[],
+                                        const POINTonE1_affine *const Ps[],
+                                        size_t n)
+{   /* ~10KB of stack storage */
+    POINTonE2 T[MILLER_LOOP_N_MAX];
+    POINTonE2_affine Q[MILLER_LOOP_N_MAX];
+    POINTonE1_affine Px2[MILLER_LOOP_N_MAX];
+    const POINTonE2_affine *Qptr = NULL;
+    const POINTonE1_affine *Pptr = NULL;
+    size_t i, j;
+
+    for (i = 0, j = 0; j < n; j++) {
+        Qptr = *Qs ? *Qs++ : Qptr+1;
+        Pptr = *Ps ? *Ps++ : Pptr+1;
+
+        /* Move common expression from line evaluation to line_by_Px2.  */
+        add_fp(Px2[i].X, Pptr->X, Pptr->X);
+        neg_fp(Px2[i].X, Px2[i].X);
+        add_fp(Px2[i].Y, Pptr->Y, Pptr->Y);
+
+        vec_copy(Q[i].X, Qptr->X, 2*sizeof(Q[i].X));
+        vec_copy(T[i].X, Qptr->X, 2*sizeof(T[i].X));
+        vec_copy(T[i].Z, BLS12_381_Rx.p2, sizeof(T[i].Z));
+
+        if (++i == MILLER_LOOP_N_MAX || j == n-1) {
+            vec384fp12 tmp;
+            vec384fp6 *ret = j < MILLER_LOOP_N_MAX ? out : tmp;
+
+            /* first step is ret = 1^2*line, which is just ret = line       */
+            start_dbl_n(ret, T, Px2, i);            /* 0x2                  */
+            add_n_dbl_n(ret, T, Q, Px2, i, 2);      /* ..0xc                */
+            add_n_dbl_n(ret, T, Q, Px2, i, 3);      /* ..0x68               */
+            add_n_dbl_n(ret, T, Q, Px2, i, 9);      /* ..0xd200             */
+            add_n_dbl_n(ret, T, Q, Px2, i, 32);     /* ..0xd20100000000     */
+            add_n_dbl_n(ret, T, Q, Px2, i, 16);     /* ..0xd201000000010000 */
+            conjugate_fp12(ret);            /* account for z being negative */
+
+            if (j >= MILLER_LOOP_N_MAX)
+                mul_fp12(out, out, ret);
+
+            i = 0;
+        }
+    }
+}
+
 void blst_final_exp(vec384fp12 ret, const vec384fp12 f)
 {   final_exp(ret, f);   }
 
@@ -442,3 +492,64 @@ int blst_fp12_in_group(const vec384fp12 f)
 
     return (int)vec_is_equal(a, b, sizeof(a));
 }
+
+int binary_bit_length(int k) {
+    int bits = 0;
+    while (k > 0) {
+        bits++;
+        k >>= 1; // 右移一位
+    }
+    return bits;
+}
+
+
+int scalar_get_bit(int k, int i) {
+    return (k >> i) & 1; // 将 k 右移 i 位，然后与 1 进行与操作
+}
+
+void POINTonE2_scalarmul(POINTonE2 *result, const POINTonE2 *P, const int k) 
+{
+    // 初始化结果为无穷远点
+    POINTonE2_infinity(result);
+
+    // 临时变量，用于存储中间结果
+    POINTonE2 temp;
+
+    // 遍历 k 的每一位
+    for (int i = binary_bit_length(k) - 1; i >= 0; i--) {
+        // 点加运算
+        POINTonE2_add(&temp, result, result);
+
+        // 如果 k 的第 i 位为 1，执行点加运算
+        if (scalar_get_bit(k, i)) {
+            POINTonE2_add(result, &temp, P);
+        }
+    }
+}
+void optimal_ate_pairing(vec384fp12 e1, const POINTonE2_affine *Q, const POINTonE1_affine *P) {
+    vec384fp12 f;
+    // 执行 Miller 循环
+    miller_loop_n(f, Q, P, 1); // 假设我们只有一个点对
+    // 执行 final exponentiation
+    final_exp(e1, f);
+}
+int main()
+{
+vec384fp12 e1;
+vec384fp12 e2;
+int k=2;
+printf("\n========\n");
+printf("bilinear test:\n");
+printf("========\n");
+printf("- e(P,[k]Q)== e([k]P,Q)\n");// compute [k]Q
+POINTonE2_scalarmul(_Q,&BLS12_381_G2,k);// compute el= e(P,[k]Q)
+POINTonE1_to_affine(P,&BLS12_381_G1);
+POINTonE2_to_affine(Q,_Q);
+optimal_ate_pairing(e1,Q,P);// compute [k]P
+POINTonE1_scalarmul( P,&BLS12_381_G1,k);//compute e2=e([k]P,Q)
+POINTonE1_to_affine(P, _P);
+POINTonE2_to_affine(Q,&BLS12_381_G2);
+optimal_ate_pairing(e2,Q,P);
+// test whether el ==e2:i.e.,whether e(P, [k]Q)== e([k]P, Q)
+if (memcmp(e1,e2,sizeof(vec384fp12)))
+    printf("\x1b[31m e1 != e2 x1b[0m \n");}

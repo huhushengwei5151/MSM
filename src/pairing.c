@@ -511,14 +511,16 @@ void POINTonE1_infinity(POINTonE1 *result) {
     vec_zero(result->X, sizeof(result->X));
     vec_zero(result->Y, sizeof(result->Y));
     // Set the Z coordinate to one (in Montgomery form)
-    vec_copy(result->Z, ONE_MONT_P, sizeof(result->Z));
-}
+    limb_t one_mont_p[] = { ONE_MONT_P }; // 假设 ONE_MONT_P 是一个数值
+    vec_copy(result->Z, one_mont_p, sizeof(result->Z));
 void POINTonE2_infinity(POINTonE2 *result) {
     // Set the X and Y coordinates to zero
     vec_zero(result->X, sizeof(result->X));
     vec_zero(result->Y, sizeof(result->Y));
     // Set the Z coordinate to one (in Montgomery form)
-    vec_copy(result->Z, ONE_MONT_P, sizeof(result->Z));
+    limb_t one_mont_p[] = { ONE_MONT_P }; // 假设 ONE_MONT_P 是一个数值
+    vec_copy(result->Z, one_mont_p, sizeof(result->Z));
+//将 result 结构体中的 Z 坐标设置为蒙哥马利形式的1
 }
 
 void POINTonE1_scalarmul(POINTonE1 *result, const POINTonE1 *P, const int k) 
@@ -589,5 +591,5 @@ POINTonE1_to_affine(P, _P);
 POINTonE2_to_affine(Q,&BLS12_381_G2);
 optimal_ate_pairing(e2,Q,P);
 // test whether el ==e2:i.e.,whether e(P, [k]Q)== e([k]P, Q)
-if (memcmp(e1,e2,sizeof(vec384fp12)))
-    printf("\x1b[31m e1 != e2 x1b[0m \n");}
+if (memcmp(e1,e2,sizeof(vec384fp12)))：
+    printf("\x1b[31m e1 != e2 \x1b[0m \n");}

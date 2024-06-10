@@ -506,6 +506,40 @@ int binary_bit_length(int k) {
 int scalar_get_bit(int k, int i) {
     return (k >> i) & 1; // 将 k 右移 i 位，然后与 1 进行与操作
 }
+void POINTonE1_infinity(POINTonE1 *result) {
+    // Set the X and Y coordinates to zero
+    vec_zero(result->X, sizeof(result->X));
+    vec_zero(result->Y, sizeof(result->Y));
+    // Set the Z coordinate to one (in Montgomery form)
+    vec_copy(result->Z, ONE_MONT_P, sizeof(result->Z));
+}
+void POINTonE2_infinity(POINTonE2 *result) {
+    // Set the X and Y coordinates to zero
+    vec_zero(result->X, sizeof(result->X));
+    vec_zero(result->Y, sizeof(result->Y));
+    // Set the Z coordinate to one (in Montgomery form)
+    vec_copy(result->Z, ONE_MONT_P, sizeof(result->Z));
+}
+
+void POINTonE1_scalarmul(POINTonE1 *result, const POINTonE1 *P, const int k) 
+{
+    // 初始化结果为无穷远点
+    POINTonE1_infinity(result);
+
+    // 临时变量，用于存储中间结果
+    POINTonE2 temp;
+
+    // 遍历 k 的每一位
+    for (int i = binary_bit_length(k) - 1; i >= 0; i--) {
+        // 点加运算
+        POINTonE1_add(&temp, result, result);
+
+        // 如果 k 的第 i 位为 1，执行点加运算
+        if (scalar_get_bit(k, i)) {
+            POINTonE1_add(result, &temp, P);
+        }
+    }
+}
 
 void POINTonE2_scalarmul(POINTonE2 *result, const POINTonE2 *P, const int k) 
 {
@@ -537,6 +571,10 @@ int main()
 {
 vec384fp12 e1;
 vec384fp12 e2;
+vec384fp12 Q;
+vec384fp12 _Q;
+vec384fp12 P;
+vec384fp12 _P;
 int k=2;
 printf("\n========\n");
 printf("bilinear test:\n");

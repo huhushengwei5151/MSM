@@ -6,6 +6,11 @@
 
 #include "point.h"
 #include "fields.h"
+#include "e1.h"
+#include "e2.h"
+#include "consts.h"
+#include "vect.h"
+#include"no_asm.h"
 #include <stdio.h>
 
 /*
@@ -511,17 +516,17 @@ void POINTonE1_infinity(POINTonE1 *result) {
     vec_zero(result->X, sizeof(result->X));
     vec_zero(result->Y, sizeof(result->Y));
     // Set the Z coordinate to one (in Montgomery form)
-    limb_t one_mont_p[] = { ONE_MONT_P }; // 假设 ONE_MONT_P 是一个数值
-    vec_copy(result->Z, one_mont_p, sizeof(result->Z));
+    limb_t one_mont_p1[] = { ONE_MONT_P }; // 假设 ONE_MONT_P 是一个数值
+    vec_copy(result->Z, one_mont_p1, sizeof(result->Z));}
 void POINTonE2_infinity(POINTonE2 *result) {
     // Set the X and Y coordinates to zero
     vec_zero(result->X, sizeof(result->X));
     vec_zero(result->Y, sizeof(result->Y));
     // Set the Z coordinate to one (in Montgomery form)
-    limb_t one_mont_p[] = { ONE_MONT_P }; // 假设 ONE_MONT_P 是一个数值
-    vec_copy(result->Z, one_mont_p, sizeof(result->Z));
+    limb_t one_mont_p1[] = { ONE_MONT_P }; // 假设 ONE_MONT_P 是一个数值
+    vec_copy(result->Z, one_mont_p1, sizeof(result->Z));}
 //将 result 结构体中的 Z 坐标设置为蒙哥马利形式的1
-}
+
 
 void POINTonE1_scalarmul(POINTonE1 *result, const POINTonE1 *P, const int k) 
 {
@@ -529,7 +534,7 @@ void POINTonE1_scalarmul(POINTonE1 *result, const POINTonE1 *P, const int k)
     POINTonE1_infinity(result);
 
     // 临时变量，用于存储中间结果
-    POINTonE2 temp;
+    POINTonE1 temp;
 
     // 遍历 k 的每一位
     for (int i = binary_bit_length(k) - 1; i >= 0; i--) {
@@ -573,23 +578,23 @@ int main()
 {
 vec384fp12 e1;
 vec384fp12 e2;
-vec384fp12 Q;
-vec384fp12 _Q;
-vec384fp12 P;
-vec384fp12 _P;
+POINTonE2_affine Q;
+POINTonE2 _Q;
+POINTonE1_affine P;
+POINTonE1 _P;
 int k=2;
 printf("\n========\n");
 printf("bilinear test:\n");
 printf("========\n");
 printf("- e(P,[k]Q)== e([k]P,Q)\n");// compute [k]Q
-POINTonE2_scalarmul(_Q,&BLS12_381_G2,k);// compute el= e(P,[k]Q)
-POINTonE1_to_affine(P,&BLS12_381_G1);
-POINTonE2_to_affine(Q,_Q);
-optimal_ate_pairing(e1,Q,P);// compute [k]P
-POINTonE1_scalarmul( P,&BLS12_381_G1,k);//compute e2=e([k]P,Q)
-POINTonE1_to_affine(P, _P);
-POINTonE2_to_affine(Q,&BLS12_381_G2);
-optimal_ate_pairing(e2,Q,P);
+POINTonE2_scalarmul(&_Q,&_Q,k);// compute el= e(P,[k]Q)
+POINTonE1_to_affine(&P,&_P);
+POINTonE2_to_affine(&Q,&_Q);
+optimal_ate_pairing(e1,&Q,&P);// compute [k]P
+POINTonE1_scalarmul(&_P,&_P,k);//compute e2=e([k]P,Q)
+POINTonE1_to_affine(&P, &_P);
+POINTonE2_to_affine(&Q,&_Q);
+optimal_ate_pairing(e2,&Q,&P);
 // test whether el ==e2:i.e.,whether e(P, [k]Q)== e([k]P, Q)
-if (memcmp(e1,e2,sizeof(vec384fp12)))：
+if (memcmp(e1,e2,sizeof(vec384fp12)))
     printf("\x1b[31m e1 != e2 \x1b[0m \n");}

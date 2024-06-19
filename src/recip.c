@@ -5,6 +5,8 @@
  */
 
 #include "fields.h"
+#define neg_fp(r,a) cneg_fp((r),(a),1)
+#define neg_fp2(r,a) cneg_fp2((r),(a),1)
 
 #ifdef __OPTIMIZE_SIZE__
 /*
@@ -29,7 +31,7 @@ static void flt_reciprocal_fp(vec384 out, const vec384 inp)
 # define sqr_n_mul(ret,a,n,b)	sqr_n_mul_fp(ret,a,n,b)
 
 # include "recip-addchain.h"
-static void flt_reciprocal_fp(vec384 out, const vec384 inp)
+void flt_reciprocal_fp(vec384 out, const vec384 inp)
 {
     RECIPROCAL_MOD_BLS12_381_P(out, inp, vec384);
 }
@@ -39,7 +41,7 @@ static void flt_reciprocal_fp(vec384 out, const vec384 inp)
 # undef sqr
 #endif
 
-static void flt_reciprocal_fp2(vec384x out, const vec384x inp)
+void flt_reciprocal_fp2(vec384x out, const vec384x inp)
 {
     vec384 t0, t1;
 
@@ -55,7 +57,7 @@ static void flt_reciprocal_fp2(vec384x out, const vec384x inp)
     neg_fp(out[1], out[1]);
 }
 
-static void reciprocal_fp(vec384 out, const vec384 inp)
+void reciprocal_fp(vec384 out, const vec384 inp)
 {
     static const vec384 Px8 = {    /* left-aligned value of the modulus */
         TO_LIMB_T(0xcff7fffffffd5558), TO_LIMB_T(0xf55ffff58a9ffffd),
@@ -97,7 +99,7 @@ void blst_fp_inverse(vec384 out, const vec384 inp)
 void blst_fp_eucl_inverse(vec384 ret, const vec384 a)
 {   reciprocal_fp(ret, a);   }
 
-static void reciprocal_fp2(vec384x out, const vec384x inp)
+void reciprocal_fp2(vec384x out, const vec384x inp)
 {
     vec384 t0, t1;
 
@@ -119,7 +121,7 @@ void blst_fp2_inverse(vec384x out, const vec384x inp)
 void blst_fp2_eucl_inverse(vec384x out, const vec384x inp)
 {   reciprocal_fp2(out, inp);   }
 
-static void reciprocal_fr(vec256 out, const vec256 inp)
+void reciprocal_fr(vec256 out, const vec256 inp)
 {
     static const vec256 rx2 = { /* left-aligned value of the modulus */
         TO_LIMB_T(0xfffffffe00000002), TO_LIMB_T(0xa77b4805fffcb7fd),

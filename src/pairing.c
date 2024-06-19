@@ -12,6 +12,7 @@
 #include "vect.h"
 #include"no_asm.h"
 #include <stdio.h>
+#include"string.h"
 
 /*
  * Line evaluations from  https://eprint.iacr.org/2010/354.pdf
